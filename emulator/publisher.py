@@ -10,6 +10,7 @@ import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+import httpx
 import numpy as np
 import paho.mqtt.client as mqtt
 
@@ -30,6 +31,8 @@ class Publisher:
         self._rpm: dict[str, float] = {}
         self._running: dict[str, bool] = {}
         self._last: dict[tuple[str, str], float] = {}
+        self._channels: list[Channel] = []
+        self._channels_at = 0.0
         self._stop = threading.Event()
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="sensor-emulator")
         self.client.on_connect = self._on_connect
@@ -77,14 +80,45 @@ class Publisher:
             return live
         return ch.rated_rpm
 
+    def _refresh_channels(self, now: float) -> None:
+        if self._channels and now - self._channels_at < 30:
+            return
+        self._channels_at = now
+        try:
+            response = httpx.get(f"{get_settings().mes_url}/api/sensors", timeout=5)
+            response.raise_for_status()
+            rows = response.json()
+        except httpx.HTTPError as e:
+            log.warning("MES 센서 목록을 가져오지 못했습니다: %s", e)
+            return
+        rated = {"MACHINE_A": 3000.0, "MACHINE_B": 2400.0}
+        self._channels = [
+            Channel(
+                machine=row["machineCode"],
+                channel=row["code"],
+                sample_rate=int(row["sampleRate"]),
+                n_samples=int(row["nSamples"]),
+                interval_s=float(row["intervalS"]),
+                preset=row["preset"],
+                severity=float(row["severity"]),
+                rated_rpm=rated.get(row["machineCode"], 1800.0),
+                enabled=bool(row["enabled"]),
+            )
+            for row in rows
+        ]
+        log.info("MES 센서 %d개 반영, 전송 주기 %s초", len(self._channels), 
+                 ", ".join(f"{c.machine}/{c.channel}={int(c.interval_s)}" for c in self._channels))
+
     def _loop(self) -> None:
         while not self._stop.is_set():
             now = time.monotonic()
-            for ch in self.store.list_channels():
+            self._refresh_channels(now)
+            for ch in self._channels:
                 if not ch.enabled:
                     continue
                 key = (ch.machine, ch.channel)
-                if now - self._last.get(key, 0.0) < ch.interval_s:
+                last = self._last.get(key)
+                if last is not None and now - last < ch.interval_s:
                     continue
                 self._last[key] = now
                 self._publish(ch)

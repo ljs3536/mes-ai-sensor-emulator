@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     mqtt_host: str = "localhost"
     mqtt_port: int = 1883
     mqtt_topic_prefix: str = "mes"
+    mes_url: str = "http://localhost:8000"
     database_path: str = "./emulator.db"
     cors_origins: list[str] = ["http://localhost:3001"]
     timezone: str = "Asia/Seoul"
