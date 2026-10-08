@@ -1,3 +1,11 @@
+"""PIEZO 진동 파형 에뮬레이터.
+
+현재 기능:
+- MES에 연결된 센서 목록을 읽어 설비·센서별로 파형 블록을 MQTT에 발행
+- 결함 파형 미리보기와 예전 채널 설정 API를 제공
+실제 수집 설정(주기, 샘플레이트, 샘플 수, 프리셋)의 기준은 MES MariaDB다.
+"""
+
 import logging
 from contextlib import asynccontextmanager
 
