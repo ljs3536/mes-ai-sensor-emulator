@@ -39,6 +39,8 @@ class Publisher:
         self.client.on_message = self._on_message
         self.client.on_disconnect = lambda *_: log.warning("MQTT 연결 끊김, 재연결 대기")
         self.client.reconnect_delay_set(1, 30)
+        if s.mqtt_username:
+            self.client.username_pw_set(s.mqtt_username, s.mqtt_password)
         self.client.connect_async(s.mqtt_host, s.mqtt_port, keepalive=30)
 
     def start(self) -> None:
