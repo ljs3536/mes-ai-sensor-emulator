@@ -2,7 +2,7 @@
 
 현재 기능:
 - MES에 연결된 센서 목록을 읽어 설비·센서별로 파형 블록을 MQTT에 발행. 계정이 있으면 그 계정으로 접속한다
-- 결함 파형 미리보기와 예전 채널 설정 API를 제공
+- 결함 파형 미리보기와 예전 채널 설정 API를 제공한다. 채널 변경과 미리보기는 관리자만 호출한다.
 실제 수집 설정(주기, 샘플레이트, 샘플 수, 프리셋)의 기준은 MES MariaDB다.
 """
 
@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
+from .auth import Admin
 from .config import get_settings
 from .db import Channel, ChannelStore
 from .publisher import Publisher
@@ -79,12 +80,12 @@ def presets():
 
 
 @app.get("/api/channels")
-def channels():
+def channels(_: Admin):
     return [ch.as_dict() for ch in store.list_channels()]
 
 
 @app.put("/api/channels")
-def save_channel(body: ChannelIn):
+def save_channel(body: ChannelIn, _: Admin):
     ch = Channel(
         machine=body.machine.strip(),
         channel=body.channel.strip(),
@@ -104,7 +105,7 @@ def save_channel(body: ChannelIn):
 
 
 @app.post("/api/preview")
-def preview(body: PreviewIn):
+def preview(body: PreviewIn, _: Admin):
     if body.preset not in PRESETS or body.n_samples not in ALLOWED_N:
         raise HTTPException(422, "프리셋 또는 샘플 개수가 올바르지 않습니다")
     if body.sample_rate < 256 or body.sample_rate > 25600:
