@@ -16,7 +16,7 @@ import paho.mqtt.client as mqtt
 
 from .config import get_settings
 from .db import Channel, ChannelStore
-from .wave import synthesize
+from .wave import synthesize, to_voltage
 
 log = logging.getLogger("emulator.publish")
 KST = ZoneInfo("Asia/Seoul")
@@ -130,7 +130,7 @@ class Publisher:
         if not self.client.is_connected():
             return
         rpm = self.rpm_for(ch)
-        samples = synthesize(ch.sample_rate, ch.n_samples, rpm, ch.preset, ch.severity, self.rng)
+        samples = to_voltage(synthesize(ch.sample_rate, ch.n_samples, rpm, ch.preset, ch.severity, self.rng))
         ts = datetime.now(KST).isoformat(timespec="milliseconds")
         body = {
             "ts": ts,
@@ -138,7 +138,7 @@ class Publisher:
             "sampleRate": ch.sample_rate,
             "n": ch.n_samples,
             "rpm": round(rpm, 2),
-            "unit": "g",
+            "unit": "V",
             "samples": base64.b64encode(samples.tobytes()).decode("ascii"),
         }
         self.client.publish(f"{self.prefix}/machines/{ch.machine}/waveform", json.dumps(body), qos=0)

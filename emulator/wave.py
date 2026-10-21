@@ -13,6 +13,12 @@ PRESETS = {
 }
 
 ALLOWED_N = (256, 512, 1024, 2048, 4096, 8192)
+# 가속도계가 흔들림 1 g당 내보내는 전압. 합성은 g로 하고, 전송 직전에 V로 바꾼다.
+SENSITIVITY_MV_PER_G = 100.0
+
+
+def to_voltage(samples: np.ndarray) -> np.ndarray:
+    return (np.asarray(samples, dtype=np.float64) * (SENSITIVITY_MV_PER_G / 1000.0)).astype(np.float32)
 
 
 def synthesize(

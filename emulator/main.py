@@ -1,7 +1,7 @@
 """PIEZO 진동 파형 에뮬레이터.
 
 현재 기능:
-- MES에 연결된 센서 목록을 읽어 설비·센서별로 파형 블록을 MQTT에 발행. 계정이 있으면 그 계정으로 접속한다
+- MES에 연결된 센서 목록을 읽어 설비·센서별로 파형 블록을 MQTT에 발행한다. 합성은 g이고, 전송 샘플은 100 mV/g로 바꾼 전압(V)이다. 계정이 있으면 그 계정으로 접속한다
 - 결함 파형 미리보기와 예전 채널 설정 API를 제공한다. 채널 변경과 미리보기는 관리자만 호출한다.
 실제 수집 설정(주기, 샘플레이트, 샘플 수, 프리셋)의 기준은 MES MariaDB다.
 """
@@ -19,7 +19,7 @@ from .auth import Admin
 from .config import get_settings
 from .db import Channel, ChannelStore
 from .publisher import Publisher
-from .wave import ALLOWED_N, PRESETS, synthesize
+from .wave import ALLOWED_N, PRESETS, synthesize, to_voltage
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
 
@@ -123,5 +123,6 @@ def preview(body: PreviewIn, _: Admin):
         "n": body.n_samples,
         "resolutionHz": round(body.sample_rate / body.n_samples, 4),
         "durationS": round(body.n_samples / body.sample_rate, 4),
-        "samples": samples.tolist(),
+        "samples": to_voltage(samples).tolist(),
+        "unit": "V",
     }
