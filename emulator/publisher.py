@@ -87,7 +87,15 @@ class Publisher:
             return
         self._channels_at = now
         try:
-            response = httpx.get(f"{get_settings().mes_url}/api/sensors", timeout=5)
+            settings = get_settings()
+            if not settings.mes_internal_token:
+                log.warning("MES 내부 토큰이 없어 센서 목록을 가져오지 않습니다")
+                return
+            response = httpx.get(
+                f"{settings.mes_url}/api/sensors",
+                headers={"X-Internal-Token": settings.mes_internal_token},
+                timeout=5,
+            )
             response.raise_for_status()
             rows = response.json()
         except httpx.HTTPError as e:

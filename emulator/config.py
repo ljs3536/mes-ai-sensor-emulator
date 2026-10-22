@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     mqtt_password: str = ""
     mqtt_topic_prefix: str = "mes"
     mes_url: str = "http://localhost:8000"
+    mes_internal_token: str = ""
     database_path: str = "./emulator.db"
     cors_origins: list[str] = ["http://localhost:3001"]
     timezone: str = "Asia/Seoul"
